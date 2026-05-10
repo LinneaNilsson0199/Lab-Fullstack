@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
+
+const API_URL = "http://localhost:3000";
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -18,16 +20,12 @@ function App() {
   const [registerWeight, setRegisterWeight] = useState("");
   const [registerMessage, setRegisterMessage] = useState("");
 
-  const exerciseMenu = [
-    "Bench Press", "Incline Bench Press", "Push Ups", "Chest Fly",
-    "Shoulder Press", "Lateral Raises", "Front Raises", "Tricep Pushdown",
-    "Tricep Dips", "Bicep Curls", "Hammer Curls", "Pull Ups",
-    "Lat Pulldown", "Seated Row", "Barbell Row", "Deadlift",
-    "Squat", "Leg Press", "Lunges", "Leg Extension",
-    "Leg Curl", "Calf Raises", "Hip Thrust", "Glute Bridge",
-    "Plank", "Crunches", "Russian Twists", "Mountain Climbers",
-    "Burpees", "Running"
-  ];
+  const [exerciseMenu, setExerciseMenu] = useState([]);
+
+  const [newExerciseName, setNewExerciseName] = useState("");
+  const [newMuscleGroup, setNewMuscleGroup] = useState("");
+  const [newEquipment, setNewEquipment] = useState("");
+  const [exerciseMessage, setExerciseMessage] = useState("");
 
   const [workoutName, setWorkoutName] = useState("");
   const [workoutDate, setWorkoutDate] = useState("");
@@ -38,12 +36,35 @@ function App() {
   const [exercises, setExercises] = useState([]);
   const [message, setMessage] = useState("");
 
+  async function fetchExercises() {
+    try {
+      const res = await fetch(`${API_URL}/exercises`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setExerciseMessage(data.message || "Could not load exercises");
+        return;
+      }
+
+      setExerciseMenu(data);
+    } catch (error) {
+      console.error(error);
+      setExerciseMessage("Could not connect to server.");
+    }
+  }
+
+  useEffect(() => {
+    if (user) {
+      fetchExercises();
+    }
+  }, [user]);
+
   async function login(e) {
     e.preventDefault();
     setLoginMessage("");
 
     try {
-      const res = await fetch("http://127.0.0.1:3000/login", {
+      const res = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -74,7 +95,7 @@ function App() {
     setRegisterMessage("");
 
     try {
-      const res = await fetch("http://127.0.0.1:3000/register", {
+      const res = await fetch(`${API_URL}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -113,11 +134,51 @@ function App() {
   }
 
   const filteredExercises = exerciseMenu.filter((exercise) =>
-    exercise.toLowerCase().includes(exerciseSearch.toLowerCase())
+    exercise.name.toLowerCase().includes(exerciseSearch.toLowerCase())
   );
 
+  async function addNewExercise(e) {
+    e.preventDefault();
+    setExerciseMessage("");
+
+    try {
+      const res = await fetch(`${API_URL}/exercises`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: newExerciseName,
+          muscleGroup: newMuscleGroup,
+          equipment: newEquipment
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setExerciseMessage(data.message || "Could not add exercise");
+        return;
+      }
+
+      setExerciseMenu([...exerciseMenu, data]);
+      setExerciseMessage("Exercise added successfully!");
+
+      setNewExerciseName("");
+      setNewMuscleGroup("");
+      setNewEquipment("");
+    } catch (error) {
+      console.error(error);
+      setExerciseMessage("Could not connect to server.");
+    }
+  }
+
   function addExercise() {
-    if (!exerciseMenu.includes(exerciseSearch)) {
+    const selectedExercise = exerciseMenu.find(
+      (exercise) => exercise.name === exerciseSearch
+    );
+
+    if (!selectedExercise) {
       setMessage("Please select an exercise from the menu.");
       return;
     }
@@ -138,7 +199,8 @@ function App() {
     }
 
     const newExercise = {
-      name: exerciseSearch,
+      exerciseId: selectedExercise._id,
+      name: selectedExercise.name,
       sets: Number(sets),
       reps: Number(reps),
       weight: Number(weight)
@@ -163,7 +225,7 @@ function App() {
     };
 
     try {
-      const res = await fetch("http://127.0.0.1:3000/workouts", {
+      const res = await fetch(`${API_URL}/workouts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -342,11 +404,11 @@ function App() {
               <div className="suggestions">
                 {filteredExercises.map((exercise) => (
                   <div
-                    key={exercise}
+                    key={exercise._id}
                     className="suggestion-item"
-                    onClick={() => setExerciseSearch(exercise)}
+                    onClick={() => setExerciseSearch(exercise.name)}
                   >
-                    {exercise}
+                    {exercise.name}
                   </div>
                 ))}
               </div>
@@ -393,7 +455,8 @@ function App() {
             <ul>
               {exercises.map((exercise, index) => (
                 <li key={index}>
-                  {exercise.name} - {exercise.sets} sets x {exercise.reps} reps - {exercise.weight} kg
+                  {exercise.name} - {exercise.sets} sets x {exercise.reps} reps
+                  - {exercise.weight} kg
                 </li>
               ))}
             </ul>
@@ -402,6 +465,40 @@ function App() {
           </form>
 
           <p>{message}</p>
+
+          <hr />
+
+          <h2>Add New Exercise</h2>
+
+          <form onSubmit={addNewExercise}>
+            <label>Exercise Name</label>
+            <input
+              value={newExerciseName}
+              onChange={(e) => setNewExerciseName(e.target.value)}
+              placeholder="Example: Cable Fly"
+              required
+            />
+
+            <label>Muscle Group</label>
+            <input
+              value={newMuscleGroup}
+              onChange={(e) => setNewMuscleGroup(e.target.value)}
+              placeholder="Example: Chest"
+              required
+            />
+
+            <label>Equipment</label>
+            <input
+              value={newEquipment}
+              onChange={(e) => setNewEquipment(e.target.value)}
+              placeholder="Example: Cable"
+              required
+            />
+
+            <button type="submit">Add New Exercise</button>
+          </form>
+
+          <p>{exerciseMessage}</p>
         </div>
 
         <div className="logout-area">

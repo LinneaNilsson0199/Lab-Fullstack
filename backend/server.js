@@ -26,8 +26,31 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// HOME
 app.get("/", (req, res) => {
   res.send("Gym Tracker API is running");
+});
+
+// TEST DATABASE
+app.get("/test-db", async (req, res) => {
+  try {
+    const userCount = await User.countDocuments();
+    const workoutCount = await Workout.countDocuments();
+    const exerciseCount = await Exercise.countDocuments();
+
+    res.json({
+      message: "Database connection works",
+      users: userCount,
+      workouts: workoutCount,
+      exercises: exerciseCount
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Database test failed",
+      error: error.message
+    });
+  }
 });
 
 // LOGIN
@@ -38,20 +61,27 @@ app.post("/login", async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({
+        message: "Invalid email or password"
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({
+        message: "Invalid email or password"
+      });
     }
 
     const { password: _, ...safeUser } = user._doc;
 
     res.json(safeUser);
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message
+    });
   }
 });
 
@@ -80,11 +110,16 @@ app.post("/register", async (req, res) => {
 
     const savedUser = await newUser.save();
 
+    console.log("✅ New user saved:", savedUser);
+
     const { password: _, ...safeUser } = savedUser._doc;
 
     res.status(201).json(safeUser);
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message
+    });
   }
 });
 
@@ -92,9 +127,13 @@ app.post("/register", async (req, res) => {
 app.get("/users", async (req, res) => {
   try {
     const users = await User.find().select("-password");
+
     res.json(users);
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message
+    });
   }
 });
 
@@ -104,12 +143,17 @@ app.get("/users/:id", async (req, res) => {
     const user = await User.findById(req.params.id).select("-password");
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        message: "User not found"
+      });
     }
 
     res.json(user);
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message
+    });
   }
 });
 
@@ -117,12 +161,19 @@ app.get("/users/:id", async (req, res) => {
 app.post("/users", async (req, res) => {
   try {
     const newUser = new User(req.body);
+
     const savedUser = await newUser.save();
 
+    console.log("✅ User created:", savedUser);
+
     const safeUser = await User.findById(savedUser._id).select("-password");
+
     res.status(201).json(safeUser);
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      message: error.message
+    });
   }
 });
 
@@ -130,9 +181,13 @@ app.post("/users", async (req, res) => {
 app.get("/exercises", async (req, res) => {
   try {
     const exercises = await Exercise.find();
+
     res.json(exercises);
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message
+    });
   }
 });
 
@@ -142,12 +197,17 @@ app.get("/exercises/:id", async (req, res) => {
     const exercise = await Exercise.findById(req.params.id);
 
     if (!exercise) {
-      return res.status(404).json({ message: "Exercise not found" });
+      return res.status(404).json({
+        message: "Exercise not found"
+      });
     }
 
     res.json(exercise);
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message
+    });
   }
 });
 
@@ -155,20 +215,32 @@ app.get("/exercises/:id", async (req, res) => {
 app.post("/exercises", async (req, res) => {
   try {
     const newExercise = new Exercise(req.body);
+
     const savedExercise = await newExercise.save();
+
+    console.log("✅ Exercise created:", savedExercise);
+
     res.status(201).json(savedExercise);
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      message: error.message
+    });
   }
 });
 
 // GET ALL WORKOUTS
 app.get("/workouts", async (req, res) => {
   try {
-    const workouts = await Workout.find().populate("userId", "-password");
+    const workouts = await Workout.find()
+      .populate("userId", "-password");
+
     res.json(workouts);
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message
+    });
   }
 });
 
@@ -180,26 +252,32 @@ app.get("/workouts/user/:userId", async (req, res) => {
     }).populate("userId", "-password");
 
     res.json(workouts);
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message
+    });
   }
 });
 
 // GET WORKOUT BY ID
 app.get("/workouts/:id", async (req, res) => {
   try {
-    const workout = await Workout.findById(req.params.id).populate(
-      "userId",
-      "-password"
-    );
+    const workout = await Workout.findById(req.params.id)
+      .populate("userId", "-password");
 
     if (!workout) {
-      return res.status(404).json({ message: "Workout not found" });
+      return res.status(404).json({
+        message: "Workout not found"
+      });
     }
 
     res.json(workout);
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message
+    });
   }
 });
 
@@ -231,22 +309,6 @@ app.post("/workouts", async (req, res) => {
         }))
       : [];
 
-    for (const exercise of formattedExercises) {
-      if (
-        !exercise.name ||
-        exercise.sets < 1 ||
-        exercise.sets > 10 ||
-        exercise.reps < 1 ||
-        exercise.reps > 100 ||
-        exercise.weight < 1
-      ) {
-        return res.status(400).json({
-          message:
-            "Each exercise needs a name, 1-10 sets, 1-100 reps, and a valid weight"
-        });
-      }
-    }
-
     const newWorkout = new Workout({
       userId,
       name,
@@ -256,12 +318,17 @@ app.post("/workouts", async (req, res) => {
 
     const savedWorkout = await newWorkout.save();
 
+    console.log("✅ New workout saved:", savedWorkout);
+
     res.status(201).json({
       message: "Workout saved successfully",
       workout: savedWorkout
     });
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      message: error.message
+    });
   }
 });
 
