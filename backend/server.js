@@ -10,12 +10,15 @@ const Workout = require("./models/Workout");
 
 const app = express();
 
-// Connect to database
 connectDB();
 
-// Middleware
 app.use(cors({
-  origin: ["http://127.0.0.1:5500", "http://localhost:5500"],
+  origin: [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174"
+  ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type"]
 }));
@@ -23,7 +26,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Home route
 app.get("/", (req, res) => {
   res.send("Gym Tracker API is running");
 });
@@ -45,7 +47,6 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // Remove password before sending user back
     const { password: _, ...safeUser } = user._doc;
 
     res.json(safeUser);
@@ -67,7 +68,6 @@ app.post("/register", async (req, res) => {
       });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
@@ -80,11 +80,9 @@ app.post("/register", async (req, res) => {
 
     const savedUser = await newUser.save();
 
-    // Remove password before sending back
     const { password: _, ...safeUser } = savedUser._doc;
 
     res.status(201).json(safeUser);
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -167,9 +165,19 @@ app.post("/exercises", async (req, res) => {
 // GET ALL WORKOUTS
 app.get("/workouts", async (req, res) => {
   try {
-    const workouts = await Workout.find()
-      .populate("userId", "-password")
-      .populate("exercises.exerciseId");
+    const workouts = await Workout.find().populate("userId", "-password");
+    res.json(workouts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET WORKOUTS FOR ONE USER
+app.get("/workouts/user/:userId", async (req, res) => {
+  try {
+    const workouts = await Workout.find({
+      userId: req.params.userId
+    }).populate("userId", "-password");
 
     res.json(workouts);
   } catch (error) {
@@ -180,9 +188,10 @@ app.get("/workouts", async (req, res) => {
 // GET WORKOUT BY ID
 app.get("/workouts/:id", async (req, res) => {
   try {
-    const workout = await Workout.findById(req.params.id)
-      .populate("userId", "-password")
-      .populate("exercises.exerciseId");
+    const workout = await Workout.findById(req.params.id).populate(
+      "userId",
+      "-password"
+    );
 
     if (!workout) {
       return res.status(404).json({ message: "Workout not found" });
@@ -197,15 +206,65 @@ app.get("/workouts/:id", async (req, res) => {
 // CREATE WORKOUT
 app.post("/workouts", async (req, res) => {
   try {
-    const newWorkout = new Workout(req.body);
+    const { userId, name, date, exercises } = req.body;
+
+    if (!userId || !name || !date) {
+      return res.status(400).json({
+        message: "User ID, workout name, and date are required"
+      });
+    }
+
+    const userExists = await User.findById(userId);
+
+    if (!userExists) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    const formattedExercises = Array.isArray(exercises)
+      ? exercises.map((exercise) => ({
+          name: exercise.name,
+          sets: Number(exercise.sets),
+          reps: Number(exercise.reps),
+          weight: Number(exercise.weight)
+        }))
+      : [];
+
+    for (const exercise of formattedExercises) {
+      if (
+        !exercise.name ||
+        exercise.sets < 1 ||
+        exercise.sets > 10 ||
+        exercise.reps < 1 ||
+        exercise.reps > 100 ||
+        exercise.weight < 1
+      ) {
+        return res.status(400).json({
+          message:
+            "Each exercise needs a name, 1-10 sets, 1-100 reps, and a valid weight"
+        });
+      }
+    }
+
+    const newWorkout = new Workout({
+      userId,
+      name,
+      date,
+      exercises: formattedExercises
+    });
+
     const savedWorkout = await newWorkout.save();
-    res.status(201).json(savedWorkout);
+
+    res.status(201).json({
+      message: "Workout saved successfully",
+      workout: savedWorkout
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
