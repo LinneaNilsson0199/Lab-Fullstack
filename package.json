@@ -1,26 +1,12 @@
 {
   "name": "lab-fullstack",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "frontend": "cd frontend && npm run dev",
+    "backend": "cd backend && node server.js",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\""
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/LinneaNilsson0199/Lab-Fullstack.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/LinneaNilsson0199/Lab-Fullstack/issues"
-  },
-  "homepage": "https://github.com/LinneaNilsson0199/Lab-Fullstack#readme",
   "dependencies": {
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "mongoose": "^9.5.0"
+    "concurrently": "^9.2.1"
   }
 }
