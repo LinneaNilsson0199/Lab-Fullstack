@@ -30,11 +30,6 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// HOME
-app.get("/", (req, res) => {
-  res.send("Gym Tracker API is running");
-});
-
 // ROUTES
 app.use("/", authRoutes);
 app.use("/users", userRoutes);
