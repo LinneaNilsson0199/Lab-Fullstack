@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "scripts": {
     "frontend": "cd frontend && npm run dev",
-    "backend": "cd backend && node server.js",
+    "backend": "cd backend && nodemon server.js",
     "dev": "concurrently \"npm run backend\" \"npm run frontend\""
   },
   "dependencies": {
     "concurrently": "^9.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

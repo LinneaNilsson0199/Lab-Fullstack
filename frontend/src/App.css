@@ -46,6 +46,32 @@ body {
   font-weight: bold;
 }
 
+.page-buttons {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.workout-list {
+  display: grid;
+  gap: 15px;
+}
+
+.workout-card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fafafa;
+}
+
+.workout-card h3 {
+  margin-top: 0;
+}
+
+.workout-card button {
+  margin-right: 8px;
+}
+
 input {
   width: 100%;
   padding: 12px;
@@ -67,6 +93,10 @@ button {
   color: white;
   cursor: pointer;
   margin-top: 8px;
+}
+
+button:hover {
+  opacity: 0.85;
 }
 
 .exercise-row {
