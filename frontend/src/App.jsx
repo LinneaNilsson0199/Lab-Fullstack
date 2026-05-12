@@ -28,11 +28,18 @@ function App() {
   const [message, setMessage] = useState("");
   const [exerciseMessage, setExerciseMessage] = useState("");
 
+  // AUTO REFRESH
   useEffect(() => {
-    if (user) {
-      fetchExercises();
+    if (!user) return;
+
+    fetchExercises();
+    fetchWorkouts();
+
+    const interval = setInterval(() => {
       fetchWorkouts();
-    }
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [user]);
 
   async function fetchExercises() {
